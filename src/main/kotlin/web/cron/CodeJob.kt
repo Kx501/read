@@ -20,9 +20,11 @@ class CodeJob : Runnable{
         if (mycode.isBlank()) return@runBlocking
         runCatching {
             val data=postRequest("http://app.qread.xyz/appapi/NeedCode","key="+mycode)
-            val jd= GSON.fromJson<Map<String, Any>>(data, Map::class.java)
-            val  code=jd["code"] as Double
-            if (code == 0.0){
+            val jd = GSON.fromJson<Map<String, Any>>(data, Map::class.java)
+            val code = (jd["code"] as? Number)?.toDouble()
+                ?: (jd["code"] as? String)?.toDoubleOrNull()
+                ?: 1.0
+            if (code == 0.0) {
                 logger.info("需要邀请码")
                 HomeController.needcode=true
             }else{

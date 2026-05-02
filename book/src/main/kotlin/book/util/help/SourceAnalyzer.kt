@@ -1,6 +1,8 @@
 package book.util.help
 
 import book.model.BookSource
+import com.google.gson.JsonElement
+import com.google.gson.JsonParser
 import com.jayway.jsonpath.JsonPath
 import book.model.BookType
 import book.model.rule.*
@@ -106,7 +108,12 @@ object SourceAnalyzer {
                     enabledCookieJar = jsonItem.readBool("enabledCookieJar") ?: true
                     phonehttp = jsonItem.readBool("phonehttp") ?: true
                     if (exploreUrl.isNullOrBlank()) {
-                        enabledExplore = false
+                        val hasExploreScreen = runCatching {
+                            jsonItem.read("exploreScreen", Any::class.java) != null
+                        }.getOrDefault(false)
+                        if (!hasExploreScreen) {
+                            enabledExplore = false
+                        }
                     }
                     ruleSearch = SearchRule(
                         bookList = toNewRule(jsonItem.readString("ruleSearchList")),
@@ -191,6 +198,7 @@ object SourceAnalyzer {
                 source.respondTime = sourceAny.respondTime
                 source.weight = sourceAny.weight
                 source.exploreUrl = sourceAny.exploreUrl
+                source.exploreScreen = anyToJsonElement(sourceAny.exploreScreen)
                 source.ruleExplore = if (sourceAny.ruleExplore is String) {
                     GSON.fromJsonObject<ExploreRule>(sourceAny.ruleExplore.toString())
                         .getOrNull()
@@ -251,6 +259,7 @@ object SourceAnalyzer {
         var respondTime: Long = 180000L,                // 响应时间，用于排序
         var weight: Int = 0,                            // 智能排序的权重
         var exploreUrl: String? = null,                 // 发现url
+        var exploreScreen: Any? = null,               // 结构化发现（Legado exploreScreen）
         var ruleExplore: Any? = null,                   // 发现规则
         var searchUrl: String? = null,                  // 搜索url
         var ruleSearch: Any? = null,                    // 搜索规则
@@ -389,6 +398,20 @@ object SourceAnalyzer {
         if (ua.isNullOrEmpty()) return null
         val map = mapOf(Pair(AppConst.UA_NAME, ua))
         return GSON.toJson(map)
+    }
+
+    /** 与 Gson 反序列化 [BookSourceAny] 时的类型（Map / List / String / JsonElement）兼容 */
+    private fun anyToJsonElement(raw: Any?): JsonElement? {
+        if (raw == null) return null
+        return when (raw) {
+            is JsonElement -> raw
+            is String -> {
+                val t = raw.trim()
+                if (t.isEmpty()) null
+                else JsonParser.parseString(t)
+            }
+            else -> GSON.toJsonTree(raw)
+        }
     }
 
 }

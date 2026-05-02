@@ -12,6 +12,7 @@ import book.webBook.DebugLog
 import book.webBook.analyzeRule.AnalyzeRule
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.google.gson.Gson
+import com.google.gson.JsonElement
 import com.google.gson.annotations.Expose
 import com.google.gson.reflect.TypeToken
 import org.slf4j.Logger
@@ -38,6 +39,8 @@ class BookSource(
     var lastUpdateTime: Long = 0,             // 最后更新时间，用于排序
     var weight: Int = 0,                      // 智能排序的权重
     var exploreUrl: String? = null,                 // 发现url
+    /** 结构化发现（与 Legado exploreScreen 一致）；与 [exploreUrl] 二选一或并存时由客户端决定优先级 */
+    var exploreScreen: JsonElement? = null,
     var ruleExplore: ExploreRule? = null,           // 发现规则
     var searchUrl: String? = null,                  // 搜索url
     var ruleSearch: SearchRule? = null,             // 搜索规则
@@ -121,6 +124,7 @@ class BookSource(
     fun  exploreKinds(need:Boolean):String{
         val exploreUrl = exploreUrl
         if (exploreUrl.isNullOrBlank()) {
+            exploreScreen?.let { return it.toString() }
             return ""
         }
         if(!need){
@@ -174,6 +178,7 @@ class BookSource(
                 && equal(header, source.header)
                 && equal(loginUrl, source.loginUrl)
                 && equal(exploreUrl, source.exploreUrl)
+                && exploreScreen == source.exploreScreen
                 && equal(searchUrl, source.searchUrl)
                 && getSearchRule() == source.getSearchRule()
                 && getExploreRule() == source.getExploreRule()
