@@ -1,12 +1,14 @@
 package web.controller.admin
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper
+import com.google.gson.Gson
 import org.noear.solon.annotation.Body
 import org.noear.solon.annotation.Controller
 import org.noear.solon.annotation.Get
 import org.noear.solon.annotation.Inject
 import org.noear.solon.annotation.Mapping
 import org.noear.solon.annotation.Param
+import org.noear.solon.annotation.Post
 import org.noear.solon.core.handle.UploadedFile
 import org.noear.solon.core.util.DataThrowable
 import web.mapper.BookSourceMapper
@@ -15,7 +17,7 @@ import web.notification.Source
 import web.response.*
 import web.util.page.PageByAjax
 import java.io.EOFException
-import java.util.*
+import java.util.Date
 import book.model.BookSource as Booksource
 
 
@@ -136,6 +138,55 @@ class BookSourceController {
         JsonResponse(true)
     }
 
+    @Post
+    @Mapping("/patchBookSourceText")
+    fun patchBookSourceText(@Body patch: BookSourceTextPatch?) = run {
+        val url = patch?.bookSourceUrl?.trim()
+        val field = patch?.field?.trim()
+        if (url.isNullOrBlank()) {
+            throw DataThrowable().data(JsonResponse(false, NOT_BANK))
+        }
+        if (field.isNullOrBlank()) {
+            throw DataThrowable().data(JsonResponse(false, NOT_BANK))
+        }
+        val allowed = setOf("bookSourceName", "bookSourceGroup", "bookSourceComment")
+        if (field !in allowed) {
+            throw DataThrowable().data(JsonResponse(false, USE_ERROE))
+        }
+        val row = bookSourceMapper.getBookSource(url)
+            ?: throw DataThrowable().data(JsonResponse(false, NOT_IS))
+        val rawJson = row.json
+        val domain = if (!rawJson.isNullOrBlank()) {
+            Booksource.fromJson(rawJson).getOrNull()
+                ?: throw DataThrowable().data(JsonResponse(false, SOURCE_JSON_ERROR))
+        } else {
+            Booksource(bookSourceUrl = row.bookSourceUrl ?: "")
+        }
+        domain.bookSourceUrl = row.bookSourceUrl ?: domain.bookSourceUrl
+        val v = patch.value
+        when (field) {
+            "bookSourceName" -> {
+                row.bookSourceName = v
+                domain.bookSourceName = v ?: ""
+            }
+            "bookSourceGroup" -> {
+                row.bookSourceGroup = v
+                domain.bookSourceGroup = v
+            }
+            "bookSourceComment" -> {
+                row.bookSourceComment = v
+                domain.bookSourceComment = v
+            }
+        }
+        val now = Date().time
+        row.lastUpdateTime = now
+        domain.lastUpdateTime = now
+        row.json = Gson().toJson(domain)
+        bookSourceMapper.updateById(row)
+        Source.sendNotification()
+        JsonResponse(true).Data(row.json ?: "{}")
+    }
+
     @Mapping("/topSource")
     fun topSource( id: String?)= run{
         if (id.isNullOrBlank()){
@@ -181,4 +232,11 @@ class BookSourceController {
         Pair(insert, update)
     }
 
+}
+
+/** 管理员表格行内编辑：仅允许修改与 json 同步的纯文字列 */
+class BookSourceTextPatch {
+    var bookSourceUrl: String? = null
+    var field: String? = null
+    var value: String? = null
 }

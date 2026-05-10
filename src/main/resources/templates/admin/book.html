@@ -71,12 +71,12 @@
                 <tr>
                     <th lay-data="{type: 'checkbox', fixed: 'left'}"></th>
                     <th lay-data="{title:'', width:50,templet: '#indexTpl'}"></th>
-                    <th lay-data="{field:'bookSourceName', title:'名称', width:200}"></th>
+                    <th lay-data="{field:'bookSourceName', title:'名称', width:200, edit: 'text'}"></th>
                     <th lay-data="{field:'bookSourceUrl', title:'地址'}"></th>
-                    <th lay-data="{field:'bookSourceGroup', title:'分组'}"></th>
+                    <th lay-data="{field:'bookSourceGroup', title:'分组', edit: 'text'}"></th>
                     <th lay-data="{field:'enabled', title:'状态',templet: '#enabled'}"></th>
                     <th lay-data="{field:'enabledExplore', title:'发现',templet: '#enabledExplore'}"></th>
-                    <th lay-data="{field:'bookSourceComment', title:'备注'}"></th>
+                    <th lay-data="{field:'bookSourceComment', title:'备注', edit: 'text'}"></th>
                     <th lay-data="{title:'操作' ,templet: '#tool' , width:250}"></th>
                 </tr>
                 </thead>
@@ -336,6 +336,30 @@
 
         });
 
+        table.on('edit(InZDSeach)', function (obj) {
+            var field = obj.field;
+            if (field !== 'bookSourceName' && field !== 'bookSourceGroup' && field !== 'bookSourceComment') {
+                return;
+            }
+            ajaxjson('/admin/patchBookSourceText', {
+                bookSourceUrl: obj.data.bookSourceUrl,
+                field: field,
+                value: obj.value
+            }, function (ret) {
+                if (ret.isSuccess === true) {
+                    layer.msg('已保存');
+                    if (ret.data != null) {
+                        obj.data.json = ret.data;
+                        if (typeof obj.update === 'function') {
+                            obj.update({ json: ret.data });
+                        }
+                    }
+                } else {
+                    layer.msg(ret.errorMsg);
+                    shua();
+                }
+            });
+        });
 
 
     })

@@ -4,7 +4,9 @@ solon.dataSources:
     driverClassName: org.sqlite.JDBC
     jdbcUrl: jdbc:sqlite:read.db
     maxPoolSize: 1
+    # 使用 MySQL 时须增加 username、password，并修改 jdbcUrl；完整示例见 src/main/resources/confmysql.yml
 admin:
+  cron: true  # 是否启用服务端定时任务（缓存清理、RSS、书源任务等）；false 时各 Job 内会跳过依赖此项的逻辑
   gonggao: ""  #填写公告后 app 每次开启时都会弹出
   username: "admin"
   password: "adminadmin"
@@ -13,6 +15,7 @@ admin:
 user:
   allowchange: false  #是否允许自助修改权限 允许 true 不允许 false
   allowuptxt: false  #是否允许上传txt 允许 true 不允许 false
+  allowcache: false  #是否允许添加缓存 允许 true 不允许 false
   allowimg: false  #是否使用图片解密 允许 true 不允许 false
   allowcheck: false  #是否允许检验书源 允许 true 不允许 false
   source: 0  #0为不允许修改书源，1为允许修改后台书源，2独立书源
@@ -35,6 +38,22 @@ default:
 server.http:
   coreThreads: x5 #默认线程
   maxThreads: x10  #最大线程
+
+# ---------- Solon CacheService（依赖 solon-cache-redisson；用于验证码、书源/书架分页缓存等）----------
+# 默认未写时沿用 src/main/resources/app.yml 的 cache.driverType: local（进程内）。
+# 多实例或需持久化共享时，取消下面注释并改 Redis 地址；无密码可留空 password: ""。
+# 业务开关仍由 user.allowcache 等控制；未启用时部分接口不会写入 CacheService。
+#cache:
+#  driverType: "redis"
+#  keyHeader: "read" # 键前缀，默认可 read
+#  defSeconds: 600 # 默认过期秒数，与 app.yml 可二选一保留较大值
+#  server: "127.0.0.1:6379"
+#  db: 0
+#  password: ""
+#  maxTotal: 200 # 连接池上限，可选
+#  idleConnectionTimeout: 10000
+#  connectTimeout: 10000
+
 # 如果不想日志输出到文件请把下面配置去除注解
 #solon.logging:
 #  appender:
