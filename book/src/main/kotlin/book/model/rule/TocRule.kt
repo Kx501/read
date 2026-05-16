@@ -10,5 +10,7 @@ data class TocRule(
     var isVip: String? = null,
     var isPay: String? = null,
     var updateTime: String? = null,
-    var nextTocUrl: String? = null
+    var nextTocUrl: String? = null,
+    /** 目录结构化（items/groups）；null 或 flat 仅用平面字段 */
+    var layout: TocScreenConfig? = null,
 )
